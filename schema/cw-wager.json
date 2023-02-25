@@ -102,10 +102,45 @@
           "set_winner": {
             "type": "object",
             "required": [
-              "wager_key",
-              "winner"
+              "current_prices",
+              "prev_prices",
+              "wager_key"
             ],
             "properties": {
+              "current_prices": {
+                "type": "array",
+                "items": [
+                  {
+                    "type": "integer",
+                    "format": "uint64",
+                    "minimum": 0.0
+                  },
+                  {
+                    "type": "integer",
+                    "format": "uint64",
+                    "minimum": 0.0
+                  }
+                ],
+                "maxItems": 2,
+                "minItems": 2
+              },
+              "prev_prices": {
+                "type": "array",
+                "items": [
+                  {
+                    "type": "integer",
+                    "format": "uint64",
+                    "minimum": 0.0
+                  },
+                  {
+                    "type": "integer",
+                    "format": "uint64",
+                    "minimum": 0.0
+                  }
+                ],
+                "maxItems": 2,
+                "minItems": 2
+              },
               "wager_key": {
                 "type": "array",
                 "items": [
@@ -138,21 +173,6 @@
                     ],
                     "maxItems": 2,
                     "minItems": 2
-                  }
-                ],
-                "maxItems": 2,
-                "minItems": 2
-              },
-              "winner": {
-                "type": "array",
-                "items": [
-                  {
-                    "$ref": "#/definitions/Addr"
-                  },
-                  {
-                    "type": "integer",
-                    "format": "uint64",
-                    "minimum": 0.0
                   }
                 ],
                 "maxItems": 2,

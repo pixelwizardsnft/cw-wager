@@ -10,4 +10,4 @@ Users submit their intentions to start a wager to the contract, which matches th
 
 
 ### Fees
-Contract fee and fee burn fee percentages can be set in `InstantiateMsg`.
+Contract fee and fairburn fee percentages can be set in `InstantiateMsg`.

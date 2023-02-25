@@ -21,8 +21,9 @@ export type ExecuteMsg = {
   };
 } | {
   set_winner: {
+    current_prices: [number, number];
+    prev_prices: [number, number];
     wager_key: [[Addr, number], [Addr, number]];
-    winner: [Addr, number];
   };
 } | {
   wager: {

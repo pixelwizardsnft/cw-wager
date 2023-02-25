@@ -1,4 +1,4 @@
-use cosmwasm_std::{coin, Order, Uint128};
+use cosmwasm_std::{coin, Decimal, Order, Uint128};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{DepsMut, Env, MessageInfo};
 use cw721_base::helpers::Cw721Contract;
@@ -186,6 +186,7 @@ pub fn execute_cancel(
     }
 }
 
+#[allow(clippy::comparison_chain)]
 pub fn execute_set_winner(
     deps: DepsMut,
     env: Env,
@@ -211,8 +212,8 @@ pub fn execute_set_winner(
     wagers().remove(deps.storage, wager_key.clone())?;
 
     // Determine the winner of the wager
-    let token_1_change = current_prices.0 / prev_prices.0 - 1;
-    let token_2_change = current_prices.1 / prev_prices.1 - 1;
+    let token_1_change = Decimal::from_ratio(current_prices.0, prev_prices.0);
+    let token_2_change = Decimal::from_ratio(current_prices.1, prev_prices.1);
 
     let winner;
 
@@ -258,7 +259,9 @@ pub fn execute_set_winner(
     let winner_amount = wager_total - app_fee - fairburn_fee;
 
     // Charge fee & fair burn
-    let mut res = Response::new().add_attribute("action", "set_winner");
+    let mut res = Response::new()
+        .add_attribute("action", "set_winner")
+        .add_attribute("winner", winner_addr.clone());
 
     let fee_msg = send_tokens(
         config.fee_address.clone(),

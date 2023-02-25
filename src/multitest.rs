@@ -1,7 +1,5 @@
-use std::any::Any;
-
-use cosmwasm_std::{coin, Timestamp, Uint128};
 #[cfg(test)]
+use cosmwasm_std::{coin, Timestamp, Uint128};
 use cosmwasm_std::{coins, Addr, Coin};
 use cw721::Cw721ExecuteMsg;
 use sg2::tests::mock_collection_params_1;
@@ -17,8 +15,7 @@ use vending_factory::state::{ParamsExtension, VendingMinterParams};
 use vending_factory::{helpers::FactoryContract, msg::InstantiateMsg as FactoryInstantiateMsg};
 
 use crate::config::ParamInfo;
-use crate::msg::{ConfigResponse, ExecuteMsg, QueryMsg, TokenStatusResponse, WagerResponse};
-use crate::state::Wager;
+use crate::msg::{ConfigResponse, ExecuteMsg, QueryMsg, WagersResponse};
 use crate::ContractError;
 
 const GOVERNANCE: &str = "governance";
@@ -386,7 +383,7 @@ fn try_wager() {
     assert!(res.is_ok());
 
     let query_msg = QueryMsg::Wagers {};
-    let res: WagerResponse = router
+    let res: WagersResponse = router
         .wrap()
         .query_wasm_smart(wager_contract.clone(), &query_msg)
         .unwrap();
@@ -409,10 +406,10 @@ fn try_wager() {
             &[],
         )
         .unwrap_err();
-    // assert_eq!(
-    //     err.downcast::<ContractError>().unwrap(),
-    //     ContractError::WagerActive {}
-    // );
+    assert_eq!(
+        err.downcast::<ContractError>().unwrap(),
+        ContractError::WagerActive {}
+    );
 
     // Set time further into the future
     setup_block_time(
@@ -420,7 +417,7 @@ fn try_wager() {
         Timestamp::from_nanos(GENESIS_MINT_START_TIME).seconds() + 1000,
     );
 
-    // Attempt to set the wager as son
+    // Attempt to set the wager as won
     // Expects: success
     let res = router.execute_contract(
         creator.clone(),

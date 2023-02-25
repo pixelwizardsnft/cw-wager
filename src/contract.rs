@@ -1,8 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order, StdError,
-    StdResult,
+    to_binary, Binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order, StdError, StdResult,
 };
 use cw2::set_contract_version;
 use semver::Version;
@@ -16,8 +15,8 @@ use crate::msg::{
     WagersResponse,
 };
 use crate::state::{
-    Config, MatchmakingItem, MatchmakingItemExport, Token, TokenStatus, Wager, WagerExport,
-    WagerInfo, CONFIG, MATCHMAKING, NFT, WAGERS,
+    wagers, Config, MatchmakingItem, MatchmakingItemExport, Token, TokenStatus, Wager, WagerExport,
+    WagerInfo, CONFIG, MATCHMAKING, NFT,
 };
 
 // version info for migration info
@@ -151,31 +150,35 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 pub fn query_wagers(deps: Deps) -> StdResult<WagersResponse> {
-    let wagers = WAGERS
+    let wagers = wagers()
+        .idx
+        .id
         .range(deps.storage, None, None, Order::Ascending)
-        .map(export_wager)
-        .collect::<StdResult<Vec<_>>>()?;
+        .map(|v| export_wager(v.unwrap().1))
+        .collect::<Vec<_>>();
 
     Ok(WagersResponse { wagers })
 }
 
 pub fn query_wager(deps: Deps, token: Token) -> StdResult<WagerResponse> {
     // Find the wager with the key containing the token and return it as WagerExport
-    let wager = WAGERS
+    let wager = wagers()
+        .idx
+        .id
         .range(deps.storage, None, None, Order::Ascending)
         .find(|item| {
             item.as_ref()
-                .map(|(k, _)| k.0 == token || k.1 == token)
+                .map(|(_, w)| w.id.0 == token || w.id.1 == token)
                 .unwrap_or(false)
         })
-        .map(export_wager)
-        .unwrap_or_else(|| {
-            Err(cosmwasm_std::StdError::NotFound {
-                kind: "wager".into(),
-            })
-        })?;
+        .map(|v| export_wager(v.unwrap().1));
 
-    Ok(WagerResponse { wager })
+    match wager {
+        Some(wager) => Ok(WagerResponse { wager }),
+        None => Err(cosmwasm_std::StdError::NotFound {
+            kind: "wager".into(),
+        }),
+    }
 }
 
 pub fn query_token_status(deps: Deps, token: Token) -> StdResult<TokenStatusResponse> {
@@ -183,23 +186,20 @@ pub fn query_token_status(deps: Deps, token: Token) -> StdResult<TokenStatusResp
     // If there is a MatchmakingItem for the token, return TokenStatus::Matchmaking(MatchmakingItem).
     // If there is no Wager or MatchmakingItem for the token, return TokenStatus::None.
 
-    let wager = WAGERS
+    let wager = wagers()
+        .idx
+        .id
         .range(deps.storage, None, None, Order::Ascending)
         .find(|item| {
             item.as_ref()
-                .map(|(k, _)| k.0 == token || k.1 == token)
+                .map(|(_, w)| w.id.0 == token || w.id.1 == token)
                 .unwrap_or(false)
         })
-        .map(export_wager)
-        .unwrap_or_else(|| {
-            Err(cosmwasm_std::StdError::NotFound {
-                kind: "wager".into(),
-            })
-        });
+        .map(|v| export_wager(v.unwrap().1));
 
-    if wager.is_ok() {
+    if let Some(wager) = wager {
         return Ok(TokenStatusResponse {
-            token_status: TokenStatus::Wager(wager?),
+            token_status: TokenStatus::Wager(wager),
         });
     }
 
@@ -243,29 +243,27 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
 }
 
 #[allow(clippy::type_complexity)]
-fn export_wager(
-    wager: Result<(((Addr, u64), (Addr, u64)), Wager), StdError>,
-) -> Result<WagerExport, cosmwasm_std::StdError> {
-    wager.map(|(k, v)| WagerExport {
+fn export_wager(v: Wager) -> WagerExport {
+    WagerExport {
         amount: v.amount,
         expires_at: v.expires_at,
         wagers: (
             WagerInfo {
                 token: NFT {
-                    collection: k.0 .0,
-                    token_id: k.0 .1,
+                    collection: v.id.0 .0,
+                    token_id: v.id.0 .1,
                 },
                 currency: v.currencies.0,
             },
             WagerInfo {
                 token: NFT {
-                    collection: k.1 .0,
-                    token_id: k.1 .1,
+                    collection: v.id.1 .0,
+                    token_id: v.id.1 .1,
                 },
                 currency: v.currencies.1,
             },
         ),
-    })
+    }
 }
 
 fn admin_only(deps: Deps, info: MessageInfo) -> Result<Empty, ContractError> {

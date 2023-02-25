@@ -1,7 +1,7 @@
 use cosmwasm_schema::cw_serde;
 
 use cosmwasm_std::{Addr, Decimal, Timestamp, Uint128};
-use cw_storage_plus::{Item, Map};
+use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 
 #[cw_serde]
 pub enum Currency {
@@ -33,6 +33,7 @@ pub enum Currency {
 
 #[cw_serde]
 pub struct Wager {
+    pub id: WagerKey,
     pub currencies: (Currency, Currency),
     pub amount: Uint128,
     pub expires_at: Timestamp,
@@ -86,7 +87,24 @@ pub enum TokenStatus {
 pub type Token = (Addr, u64);
 pub type WagerKey = (Token, Token);
 
-pub const WAGERS: Map<WagerKey, Wager> = Map::new("wagers");
+pub struct WagerIndicies<'a> {
+    pub id: UniqueIndex<'a, WagerKey, Wager>,
+}
+
+impl<'a> IndexList<Wager> for WagerIndicies<'a> {
+    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<Wager>> + '_> {
+        let v: Vec<&dyn Index<Wager>> = vec![&self.id];
+        Box::new(v.into_iter())
+    }
+}
+
+pub fn wagers<'a>() -> IndexedMap<'a, WagerKey, Wager, WagerIndicies<'a>> {
+    let indexes = WagerIndicies {
+        id: UniqueIndex::new(|d| d.id.clone(), "wager_id"),
+    };
+    IndexedMap::new("bids", indexes)
+}
+
 pub const MATCHMAKING: Map<Token, MatchmakingItem> = Map::new("matchmaking");
 
 #[cw_serde]

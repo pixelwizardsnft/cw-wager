@@ -10,7 +10,7 @@ use crate::contract::query_token_status;
 use crate::error::ContractError;
 use crate::helpers::send_tokens;
 use crate::state::{
-    Currency, MatchmakingItem, Token, TokenStatus, Wager, CONFIG, MATCHMAKING, WAGERS,
+    wagers, Currency, MatchmakingItem, Token, TokenStatus, Wager, CONFIG, MATCHMAKING,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -114,12 +114,13 @@ pub fn execute_wager(
         let expires_at = env.block.time.plus_seconds(expiry);
 
         let wager = Wager {
+            id: (token.clone(), against_token.clone()),
             currencies: (currency, match_currency),
             expires_at,
             amount,
         };
 
-        WAGERS.save(deps.storage, (token.clone(), against_token), &wager)?;
+        wagers().save(deps.storage, (token.clone(), against_token), &wager)?;
 
         MATCHMAKING.remove(deps.storage, matchmaking_key);
 
@@ -207,7 +208,9 @@ pub fn execute_set_winner(
     }
 
     // Get the wager info
-    let wager = WAGERS.load(deps.storage, wager_key.clone())?;
+    let wager = wagers()
+        .load(deps.storage, wager_key.clone())
+        .or_else(|_| wagers().load(deps.storage, (wager_key.clone().1, wager_key.clone().0)))?;
     let token_owner = Cw721Contract(collection)
         .owner_of(&deps.querier, token_id.to_string(), true)?
         .owner;
@@ -219,7 +222,7 @@ pub fn execute_set_winner(
 
     // Remove the wager and pay out the winner
 
-    WAGERS.remove(deps.storage, wager_key);
+    wagers().remove(deps.storage, wager_key)?;
 
     let wager_total = wager.amount * Uint128::from(2u128);
 

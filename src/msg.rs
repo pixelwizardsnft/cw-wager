@@ -28,7 +28,8 @@ pub enum ExecuteMsg {
     /// Use Authz
     SetWinner {
         wager_key: (Token, Token),
-        winner: Token,
+        prev_prices: (u64, u64),
+        current_prices: (u64, u64),
     },
 
     /// User-facing

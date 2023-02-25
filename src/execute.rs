@@ -190,40 +190,66 @@ pub fn execute_set_winner(
     deps: DepsMut,
     env: Env,
     wager_key: (Token, Token),
-    winner: Token,
+    prev_prices: (u64, u64),
+    current_prices: (u64, u64),
 ) -> Result<Response, ContractError> {
-    let (collection, token_id) = winner.clone();
-
     // Verify that all token data conforms to the contract's config
     let config = CONFIG.load(deps.storage)?;
     if wager_key.0 .0 != config.collection_address || wager_key.1 .0 != config.collection_address {
         return Err(ContractError::Unauthorized {});
     }
-
-    // Verify that the winner is part of the wager key
-    if winner != wager_key.0 && winner != wager_key.1 {
-        return Err(ContractError::InvalidParameter {
-            param: "winner".into(),
-        });
-    }
-
     // Get the wager info
     let wager = wagers()
         .load(deps.storage, wager_key.clone())
         .or_else(|_| wagers().load(deps.storage, (wager_key.clone().1, wager_key.clone().0)))?;
-    let token_owner = Cw721Contract(collection)
-        .owner_of(&deps.querier, token_id.to_string(), true)?
-        .owner;
-
     // Verify that the wager has expired
     if env.block.time < wager.expires_at {
         return Err(ContractError::WagerActive {});
     }
 
-    // Remove the wager and pay out the winner
+    // Remove the wager
+    wagers().remove(deps.storage, wager_key.clone())?;
 
-    wagers().remove(deps.storage, wager_key)?;
+    // Determine the winner of the wager
+    let token_1_change = current_prices.0 / prev_prices.0 - 1;
+    let token_2_change = current_prices.1 / prev_prices.1 - 1;
 
+    let winner;
+
+    if token_1_change > token_2_change {
+        winner = wager_key.0
+    } else if token_2_change > token_1_change {
+        winner = wager_key.1
+    } else {
+        let res = Response::new().add_attribute("action", "wager_tie");
+
+        // If the wager is a tie, send the wager amount back to both parties
+        let msgs = vec![
+            send_tokens(
+                deps.api.addr_validate(
+                    &Cw721Contract(wager.id.0 .0)
+                        .owner_of(&deps.querier, wager.id.0 .1.to_string(), true)?
+                        .owner,
+                )?,
+                coin(wager.amount.u128(), NATIVE_DENOM),
+            )?,
+            send_tokens(
+                deps.api.addr_validate(
+                    &Cw721Contract(wager.id.1 .0)
+                        .owner_of(&deps.querier, wager.id.1 .1.to_string(), true)?
+                        .owner,
+                )?,
+                coin(wager.amount.u128(), NATIVE_DENOM),
+            )?,
+        ];
+        return Ok(res.add_submessages(msgs));
+    };
+
+    let winner_addr = Cw721Contract(winner.0)
+        .owner_of(&deps.querier, winner.1.to_string(), true)?
+        .owner;
+
+    // Pay out the winner
     let wager_total = wager.amount * Uint128::from(2u128);
 
     let app_fee = wager_total * config.fee_percent / Uint128::from(100u128);
@@ -239,7 +265,7 @@ pub fn execute_set_winner(
         coin(app_fee.u128(), NATIVE_DENOM),
     )?;
     let winner_msg = send_tokens(
-        deps.api.addr_validate(&token_owner)?,
+        deps.api.addr_validate(&winner_addr)?,
         coin(winner_amount.u128(), NATIVE_DENOM),
     )?;
 

@@ -101,9 +101,13 @@ pub fn execute(
             admin_only(deps.as_ref(), info)?;
             execute_update_params(deps, params)
         }
-        ExecuteMsg::SetWinner { wager_key, winner } => {
+        ExecuteMsg::SetWinner {
+            wager_key,
+            prev_prices,
+            current_prices,
+        } => {
             admin_only(deps.as_ref(), info)?;
-            execute_set_winner(deps, env, wager_key, winner)
+            execute_set_winner(deps, env, wager_key, prev_prices, current_prices)
         }
         ExecuteMsg::Wager {
             token,

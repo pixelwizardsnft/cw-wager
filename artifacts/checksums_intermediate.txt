@@ -1,0 +1,1 @@
+6d46e77f98460d9011e06707a21e7d456ec700ed146e7a034eba40a1961f6421  ./target/wasm32-unknown-unknown/release/cw_wager.wasm

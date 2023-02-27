@@ -1,6 +1,8 @@
+use std::str::FromStr;
+
 #[cfg(test)]
 use cosmwasm_std::{coin, Timestamp, Uint128};
-use cosmwasm_std::{coins, Addr, Coin};
+use cosmwasm_std::{coins, Addr, Coin, Decimal};
 use cw721::Cw721ExecuteMsg;
 use sg2::tests::mock_collection_params_1;
 
@@ -396,8 +398,14 @@ fn try_wager() {
             (collection.clone(), TOKEN1_ID as u64),
             (collection.clone(), TOKEN2_ID as u64),
         ),
-        prev_prices: (100, 100),
-        current_prices: (110, 150), // 2nd wins, because of bigger increase
+        prev_prices: (
+            Decimal::from_str("100.0").unwrap(),
+            Decimal::from_str("100.0").unwrap(),
+        ),
+        current_prices: (
+            Decimal::from_str("110.0").unwrap(),
+            Decimal::from_str("150.5").unwrap(),
+        ), // 2nd wins, because of bigger increase
     };
     let err = router
         .execute_contract(

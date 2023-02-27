@@ -191,8 +191,8 @@ pub fn execute_set_winner(
     deps: DepsMut,
     env: Env,
     wager_key: (Token, Token),
-    prev_prices: (u64, u64),
-    current_prices: (u64, u64),
+    prev_prices: (Decimal, Decimal),
+    current_prices: (Decimal, Decimal),
 ) -> Result<Response, ContractError> {
     // Verify that all token data conforms to the contract's config
     let config = CONFIG.load(deps.storage)?;
@@ -212,8 +212,8 @@ pub fn execute_set_winner(
     wagers().remove(deps.storage, wager_key.clone())?;
 
     // Determine the winner of the wager
-    let token_1_change = Decimal::from_ratio(current_prices.0, prev_prices.0);
-    let token_2_change = Decimal::from_ratio(current_prices.1, prev_prices.1);
+    let token_1_change = Decimal::from_ratio(current_prices.0.atomics(), prev_prices.0.atomics());
+    let token_2_change = Decimal::from_ratio(current_prices.1.atomics(), prev_prices.1.atomics());
 
     let winner;
 

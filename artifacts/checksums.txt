@@ -1,1 +1,1 @@
-1245c1db9f48da8260b6bdfa06d631abf59298d56368a9dcfbfdb9a91a4fc455  cw_wager-aarch64.wasm
+bd11b728beb2161eae1709e8b2cd4ff74ea59cd37480ecf7dbe3a4c65cc8010f  cw_wager-aarch64.wasm

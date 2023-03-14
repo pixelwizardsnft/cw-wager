@@ -16,7 +16,7 @@ echo "\nConnected to wallet '$KEY_NAME'<$KEY_TYPE> @ $KEY_ADDRESS";
 echo "\n========\n";
 
 # Instantiate message config
-export INSTANTIATE_MSG="{\"max_currencies\": 3, \"amounts\": [\"100000000\", \"250000000\", \"500000000\"], \"expiries\": [600, 900, 1800], \"fee_bps\": 400, \"fairburn_bps\": 100,  \"fee_address\": \"$KEY_ADDRESS\", \"collection_address\": \"stars1eljycn4sljw0da0yfqtpcfprqhrq3j27d7vwfe5spmeytls7lh8s2upw90\", \"matchmaking_expiry\": 900}";
+export INSTANTIATE_MSG="{\"max_currencies\": 3, \"amounts\": [\"100000000\", \"250000000\", \"500000000\"], \"expiries\": [600, 900, 1800], \"fee_bps\": 400, \"fairburn_bps\": 100,  \"fee_address\": \"$KEY_ADDRESS\", \"collection_address\": \"stars1xsag8jwxfp2crgulytm9kew9fjxafft9rxu6pz2m4w7eu74rcmjs88mmcy\", \"matchmaking_expiry\": 900}";
 # echo $INSTANTIATE_MSG;
 
 ## INIT ##
@@ -76,4 +76,4 @@ echo "\n========\n";
 echo "Fetching contract address...";
 sleep 6;
 export CONTRACT=$(starsd query wasm list-contract-by-code $CODE_ID --output json | jq -r '.contracts[-1]');
-echo "Contract address: $fg_bold[green]$CONTRACT";
+echo "Contract address: $fg_bold$CONTRACT";

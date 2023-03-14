@@ -102,10 +102,37 @@
           "set_winner": {
             "type": "object",
             "required": [
-              "wager_key",
-              "winner"
+              "current_prices",
+              "prev_prices",
+              "wager_key"
             ],
             "properties": {
+              "current_prices": {
+                "type": "array",
+                "items": [
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  },
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  }
+                ],
+                "maxItems": 2,
+                "minItems": 2
+              },
+              "prev_prices": {
+                "type": "array",
+                "items": [
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  },
+                  {
+                    "$ref": "#/definitions/Decimal"
+                  }
+                ],
+                "maxItems": 2,
+                "minItems": 2
+              },
               "wager_key": {
                 "type": "array",
                 "items": [
@@ -138,21 +165,6 @@
                     ],
                     "maxItems": 2,
                     "minItems": 2
-                  }
-                ],
-                "maxItems": 2,
-                "minItems": 2
-              },
-              "winner": {
-                "type": "array",
-                "items": [
-                  {
-                    "$ref": "#/definitions/Addr"
-                  },
-                  {
-                    "type": "integer",
-                    "format": "uint64",
-                    "minimum": 0.0
                   }
                 ],
                 "maxItems": 2,
@@ -257,31 +269,35 @@
       "Currency": {
         "type": "string",
         "enum": [
-          "d_o_t",
-          "a_v_a_x",
-          "u_n_i",
-          "a_t_o_m",
-          "l_i_n_k",
-          "n_e_a_r",
-          "i_c_p",
-          "s_a_n_d",
-          "b_t_c",
-          "e_t_h",
-          "b_n_b",
-          "x_r_p",
-          "a_d_a",
-          "d_o_g_e",
-          "s_o_l",
-          "m_a_n_a",
-          "c_a_k_e",
-          "a_r",
-          "o_s_m_o",
-          "r_u_n_e",
-          "l_u_n_a",
-          "u_s_t_c",
-          "s_t_a_r_s",
-          "m_i_r"
+          "dot",
+          "avax",
+          "uni",
+          "atom",
+          "link",
+          "near",
+          "icp",
+          "sand",
+          "btc",
+          "eth",
+          "bnb",
+          "xrp",
+          "ada",
+          "doge",
+          "sol",
+          "mana",
+          "cake",
+          "ar",
+          "osmo",
+          "rune",
+          "luna",
+          "ustc",
+          "stars",
+          "mir"
         ]
+      },
+      "Decimal": {
+        "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+        "type": "string"
       },
       "ParamInfo": {
         "type": "object",
@@ -567,30 +583,30 @@
         "Currency": {
           "type": "string",
           "enum": [
-            "d_o_t",
-            "a_v_a_x",
-            "u_n_i",
-            "a_t_o_m",
-            "l_i_n_k",
-            "n_e_a_r",
-            "i_c_p",
-            "s_a_n_d",
-            "b_t_c",
-            "e_t_h",
-            "b_n_b",
-            "x_r_p",
-            "a_d_a",
-            "d_o_g_e",
-            "s_o_l",
-            "m_a_n_a",
-            "c_a_k_e",
-            "a_r",
-            "o_s_m_o",
-            "r_u_n_e",
-            "l_u_n_a",
-            "u_s_t_c",
-            "s_t_a_r_s",
-            "m_i_r"
+            "dot",
+            "avax",
+            "uni",
+            "atom",
+            "link",
+            "near",
+            "icp",
+            "sand",
+            "btc",
+            "eth",
+            "bnb",
+            "xrp",
+            "ada",
+            "doge",
+            "sol",
+            "mana",
+            "cake",
+            "ar",
+            "osmo",
+            "rune",
+            "luna",
+            "ustc",
+            "stars",
+            "mir"
           ]
         },
         "MatchmakingItemExport": {
@@ -767,30 +783,30 @@
         "Currency": {
           "type": "string",
           "enum": [
-            "d_o_t",
-            "a_v_a_x",
-            "u_n_i",
-            "a_t_o_m",
-            "l_i_n_k",
-            "n_e_a_r",
-            "i_c_p",
-            "s_a_n_d",
-            "b_t_c",
-            "e_t_h",
-            "b_n_b",
-            "x_r_p",
-            "a_d_a",
-            "d_o_g_e",
-            "s_o_l",
-            "m_a_n_a",
-            "c_a_k_e",
-            "a_r",
-            "o_s_m_o",
-            "r_u_n_e",
-            "l_u_n_a",
-            "u_s_t_c",
-            "s_t_a_r_s",
-            "m_i_r"
+            "dot",
+            "avax",
+            "uni",
+            "atom",
+            "link",
+            "near",
+            "icp",
+            "sand",
+            "btc",
+            "eth",
+            "bnb",
+            "xrp",
+            "ada",
+            "doge",
+            "sol",
+            "mana",
+            "cake",
+            "ar",
+            "osmo",
+            "rune",
+            "luna",
+            "ustc",
+            "stars",
+            "mir"
           ]
         },
         "NFT": {
@@ -899,30 +915,30 @@
         "Currency": {
           "type": "string",
           "enum": [
-            "d_o_t",
-            "a_v_a_x",
-            "u_n_i",
-            "a_t_o_m",
-            "l_i_n_k",
-            "n_e_a_r",
-            "i_c_p",
-            "s_a_n_d",
-            "b_t_c",
-            "e_t_h",
-            "b_n_b",
-            "x_r_p",
-            "a_d_a",
-            "d_o_g_e",
-            "s_o_l",
-            "m_a_n_a",
-            "c_a_k_e",
-            "a_r",
-            "o_s_m_o",
-            "r_u_n_e",
-            "l_u_n_a",
-            "u_s_t_c",
-            "s_t_a_r_s",
-            "m_i_r"
+            "dot",
+            "avax",
+            "uni",
+            "atom",
+            "link",
+            "near",
+            "icp",
+            "sand",
+            "btc",
+            "eth",
+            "bnb",
+            "xrp",
+            "ada",
+            "doge",
+            "sol",
+            "mana",
+            "cake",
+            "ar",
+            "osmo",
+            "rune",
+            "luna",
+            "ustc",
+            "stars",
+            "mir"
           ]
         },
         "NFT": {

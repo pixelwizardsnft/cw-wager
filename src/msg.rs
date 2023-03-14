@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::Uint128;
+use cosmwasm_std::{Decimal, Uint128};
 
 use crate::{
     config::ParamInfo,
@@ -28,7 +28,8 @@ pub enum ExecuteMsg {
     /// Use Authz
     SetWinner {
         wager_key: (Token, Token),
-        winner: Token,
+        prev_prices: (Decimal, Decimal),
+        current_prices: (Decimal, Decimal),
     },
 
     /// User-facing

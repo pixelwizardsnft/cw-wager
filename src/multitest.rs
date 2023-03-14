@@ -1,6 +1,8 @@
+use std::str::FromStr;
+
 #[cfg(test)]
 use cosmwasm_std::{coin, Timestamp, Uint128};
-use cosmwasm_std::{coins, Addr, Coin};
+use cosmwasm_std::{coins, Addr, Coin, Decimal};
 use cw721::Cw721ExecuteMsg;
 use sg2::tests::mock_collection_params_1;
 
@@ -15,7 +17,8 @@ use vending_factory::state::{ParamsExtension, VendingMinterParams};
 use vending_factory::{helpers::FactoryContract, msg::InstantiateMsg as FactoryInstantiateMsg};
 
 use crate::config::ParamInfo;
-use crate::msg::{ConfigResponse, ExecuteMsg, QueryMsg, WagersResponse};
+// use crate::msg::WagersResponse;
+use crate::msg::{ConfigResponse, ExecuteMsg, QueryMsg};
 use crate::ContractError;
 
 const GOVERNANCE: &str = "governance";
@@ -348,9 +351,9 @@ fn try_wager() {
 
     // Submit a wager for matchmaking
     let wager_msg = ExecuteMsg::Wager {
-        token: (collection.clone(), TOKEN1_ID as u64),
-        currency: crate::state::Currency::ATOM,
-        against_currencies: vec![crate::state::Currency::STARS],
+        token: TOKEN1_ID as u64,
+        currency: crate::state::Currency::Atom,
+        against_currencies: vec![crate::state::Currency::Stars],
         expiry: 60,
     };
 
@@ -366,9 +369,9 @@ fn try_wager() {
 
     // Submit a wager for matchmaking to `sender` from `peer`
     let wager_msg = ExecuteMsg::Wager {
-        token: (collection.clone(), TOKEN2_ID as u64),
-        currency: crate::state::Currency::STARS,
-        against_currencies: vec![crate::state::Currency::ATOM],
+        token: TOKEN2_ID as u64,
+        currency: crate::state::Currency::Stars,
+        against_currencies: vec![crate::state::Currency::Atom],
         expiry: 60,
     };
 
@@ -382,21 +385,24 @@ fn try_wager() {
     );
     assert!(res.is_ok());
 
-    let query_msg = QueryMsg::Wagers {};
-    let res: WagersResponse = router
-        .wrap()
-        .query_wasm_smart(wager_contract.clone(), &query_msg)
-        .unwrap();
-    println!("{:?}", res);
+    // let query_msg = QueryMsg::Wagers {};
+    // let res: WagersResponse = router
+    //     .wrap()
+    //     .query_wasm_smart(wager_contract.clone(), &query_msg)
+    //     .unwrap();
 
     // Attempt to set the wager as won, even thought it has not expired yet
     // Expects: failure
     let set_winner_msg = ExecuteMsg::SetWinner {
-        wager_key: (
-            (collection.clone(), TOKEN1_ID as u64),
-            (collection.clone(), TOKEN2_ID as u64),
+        wager_key: (TOKEN1_ID as u64, TOKEN2_ID as u64),
+        prev_prices: (
+            Decimal::from_str("100.0").unwrap(),
+            Decimal::from_str("100.0").unwrap(),
         ),
-        winner: (collection.clone(), TOKEN2_ID as u64),
+        current_prices: (
+            Decimal::from_str("110.0").unwrap(),
+            Decimal::from_str("150.5").unwrap(),
+        ), // 2nd wins, because of bigger increase
     };
     let err = router
         .execute_contract(
@@ -425,6 +431,5 @@ fn try_wager() {
         &set_winner_msg,
         &[],
     );
-    println!("{:?}", res);
     assert!(res.is_ok());
 }

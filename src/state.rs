@@ -5,30 +5,30 @@ use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, UniqueIndex};
 
 #[cw_serde]
 pub enum Currency {
-    DOT,
-    AVAX,
-    UNI,
-    ATOM,
-    LINK,
-    NEAR,
-    ICP,
-    SAND,
-    BTC,
-    ETH,
-    BNB,
-    XRP,
-    ADA,
-    DOGE,
-    SOL,
-    MANA,
-    CAKE,
-    AR,
-    OSMO,
-    RUNE,
-    LUNA,
-    USTC,
-    STARS,
-    MIR,
+    Dot,
+    Avax,
+    Uni,
+    Atom,
+    Link,
+    Near,
+    Icp,
+    Sand,
+    Btc,
+    Eth,
+    Bnb,
+    Xrp,
+    Ada,
+    Doge,
+    Sol,
+    Mana,
+    Cake,
+    Ar,
+    Osmo,
+    Rune,
+    Luna,
+    Ustc,
+    Stars,
+    Mir,
 }
 
 #[cw_serde]
@@ -84,7 +84,7 @@ pub enum TokenStatus {
     None,
 }
 
-pub type Token = (Addr, u64);
+pub type Token = u64;
 pub type WagerKey = (Token, Token);
 
 pub struct WagerIndicies<'a> {
@@ -100,7 +100,7 @@ impl<'a> IndexList<Wager> for WagerIndicies<'a> {
 
 pub fn wagers<'a>() -> IndexedMap<'a, WagerKey, Wager, WagerIndicies<'a>> {
     let indexes = WagerIndicies {
-        id: UniqueIndex::new(|d| d.id.clone(), "wager_id"),
+        id: UniqueIndex::new(|d| d.id, "wager_id"),
     };
     IndexedMap::new("bids", indexes)
 }

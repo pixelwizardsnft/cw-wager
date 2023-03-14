@@ -1,7 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order, StdError, StdResult,
+    to_binary, Addr, Binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, Order, StdError,
+    StdResult,
 };
 use cw2::set_contract_version;
 use semver::Version;
@@ -154,17 +155,21 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 pub fn query_wagers(deps: Deps) -> StdResult<WagersResponse> {
+    let config = CONFIG.load(deps.storage)?;
+
     let wagers = wagers()
         .idx
         .id
         .range(deps.storage, None, None, Order::Ascending)
-        .map(|v| export_wager(v.unwrap().1))
+        .map(|v| export_wager(v.unwrap().1, config.collection_address.clone()))
         .collect::<Vec<_>>();
 
     Ok(WagersResponse { wagers })
 }
 
 pub fn query_wager(deps: Deps, token: Token) -> StdResult<WagerResponse> {
+    let config = CONFIG.load(deps.storage)?;
+
     // Find the wager with the key containing the token and return it as WagerExport
     let wager = wagers()
         .idx
@@ -175,7 +180,7 @@ pub fn query_wager(deps: Deps, token: Token) -> StdResult<WagerResponse> {
                 .map(|(_, w)| w.id.0 == token || w.id.1 == token)
                 .unwrap_or(false)
         })
-        .map(|v| export_wager(v.unwrap().1));
+        .map(|v| export_wager(v.unwrap().1, config.collection_address));
 
     match wager {
         Some(wager) => Ok(WagerResponse { wager }),
@@ -190,6 +195,8 @@ pub fn query_token_status(deps: Deps, token: Token) -> StdResult<TokenStatusResp
     // If there is a MatchmakingItem for the token, return TokenStatus::Matchmaking(MatchmakingItem).
     // If there is no Wager or MatchmakingItem for the token, return TokenStatus::None.
 
+    let config = CONFIG.load(deps.storage)?;
+
     let wager = wagers()
         .idx
         .id
@@ -199,7 +206,7 @@ pub fn query_token_status(deps: Deps, token: Token) -> StdResult<TokenStatusResp
                 .map(|(_, w)| w.id.0 == token || w.id.1 == token)
                 .unwrap_or(false)
         })
-        .map(|v| export_wager(v.unwrap().1));
+        .map(|v| export_wager(v.unwrap().1, config.collection_address.clone()));
 
     if let Some(wager) = wager {
         return Ok(TokenStatusResponse {
@@ -207,11 +214,12 @@ pub fn query_token_status(deps: Deps, token: Token) -> StdResult<TokenStatusResp
         });
     }
 
-    let matchmaking_item = MATCHMAKING.may_load(deps.storage, token.clone())?.ok_or(
-        cosmwasm_std::StdError::NotFound {
-            kind: "matchmaking_item".into(),
-        },
-    );
+    let matchmaking_item =
+        MATCHMAKING
+            .may_load(deps.storage, token)?
+            .ok_or(cosmwasm_std::StdError::NotFound {
+                kind: "matchmaking_item".into(),
+            });
 
     if matchmaking_item.is_ok() {
         let MatchmakingItem {
@@ -224,8 +232,8 @@ pub fn query_token_status(deps: Deps, token: Token) -> StdResult<TokenStatusResp
         Ok(TokenStatusResponse {
             token_status: TokenStatus::Matchmaking(MatchmakingItemExport {
                 token: NFT {
-                    collection: token.0,
-                    token_id: token.1,
+                    collection: config.collection_address,
+                    token_id: token,
                 },
                 expires_at,
                 currency,
@@ -246,23 +254,22 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     Ok(ConfigResponse { config })
 }
 
-#[allow(clippy::type_complexity)]
-fn export_wager(v: Wager) -> WagerExport {
+fn export_wager(v: Wager, collection: Addr) -> WagerExport {
     WagerExport {
         amount: v.amount,
         expires_at: v.expires_at,
         wagers: (
             WagerInfo {
                 token: NFT {
-                    collection: v.id.0 .0,
-                    token_id: v.id.0 .1,
+                    collection: collection.clone(),
+                    token_id: v.id.0,
                 },
                 currency: v.currencies.0,
             },
             WagerInfo {
                 token: NFT {
-                    collection: v.id.1 .0,
-                    token_id: v.id.1 .1,
+                    collection,
+                    token_id: v.id.1,
                 },
                 currency: v.currencies.1,
             },

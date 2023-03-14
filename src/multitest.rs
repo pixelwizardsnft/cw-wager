@@ -351,7 +351,7 @@ fn try_wager() {
 
     // Submit a wager for matchmaking
     let wager_msg = ExecuteMsg::Wager {
-        token: (collection.clone(), TOKEN1_ID as u64),
+        token: TOKEN1_ID as u64,
         currency: crate::state::Currency::Atom,
         against_currencies: vec![crate::state::Currency::Stars],
         expiry: 60,
@@ -369,7 +369,7 @@ fn try_wager() {
 
     // Submit a wager for matchmaking to `sender` from `peer`
     let wager_msg = ExecuteMsg::Wager {
-        token: (collection.clone(), TOKEN2_ID as u64),
+        token: TOKEN2_ID as u64,
         currency: crate::state::Currency::Stars,
         against_currencies: vec![crate::state::Currency::Atom],
         expiry: 60,
@@ -394,10 +394,7 @@ fn try_wager() {
     // Attempt to set the wager as won, even thought it has not expired yet
     // Expects: failure
     let set_winner_msg = ExecuteMsg::SetWinner {
-        wager_key: (
-            (collection.clone(), TOKEN1_ID as u64),
-            (collection.clone(), TOKEN2_ID as u64),
-        ),
+        wager_key: (TOKEN1_ID as u64, TOKEN2_ID as u64),
         prev_prices: (
             Decimal::from_str("100.0").unwrap(),
             Decimal::from_str("100.0").unwrap(),

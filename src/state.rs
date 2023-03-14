@@ -84,7 +84,7 @@ pub enum TokenStatus {
     None,
 }
 
-pub type Token = (Addr, u64);
+pub type Token = u64;
 pub type WagerKey = (Token, Token);
 
 pub struct WagerIndicies<'a> {
@@ -100,7 +100,7 @@ impl<'a> IndexList<Wager> for WagerIndicies<'a> {
 
 pub fn wagers<'a>() -> IndexedMap<'a, WagerKey, Wager, WagerIndicies<'a>> {
     let indexes = WagerIndicies {
-        id: UniqueIndex::new(|d| d.id.clone(), "wager_id"),
+        id: UniqueIndex::new(|d| d.id, "wager_id"),
     };
     IndexedMap::new("bids", indexes)
 }

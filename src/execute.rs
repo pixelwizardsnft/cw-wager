@@ -13,7 +13,6 @@ use crate::state::{
     wagers, Currency, MatchmakingItem, Token, TokenStatus, Wager, CONFIG, MATCHMAKING,
 };
 
-#[allow(clippy::too_many_arguments)]
 pub fn execute_wager(
     deps: DepsMut,
     env: Env,
@@ -23,15 +22,11 @@ pub fn execute_wager(
     against_currencies: Vec<Currency>,
     expiry: u64,
 ) -> Result<Response, ContractError> {
-    let (collection, token_id) = token.clone();
+    let token_id = token;
 
     let amount = must_pay(&info, NATIVE_DENOM)?;
 
-    // Verify that the token's collection address is the same as the contract address in config
     let config = CONFIG.load(deps.storage)?;
-    if collection != config.collection_address {
-        return Err(ContractError::Unauthorized {});
-    }
 
     // Verify that the currencies do not exceed the maximum amount
     if against_currencies.len() > config.max_currencies as usize {
@@ -62,7 +57,7 @@ pub fn execute_wager(
     };
 
     // Verify that the sender is the owner of the token
-    let token_owner = Cw721Contract(collection.clone())
+    let token_owner = Cw721Contract(config.collection_address)
         .owner_of(&deps.querier, token_id.to_string(), true)?
         .owner;
     if info.sender != token_owner {
@@ -70,7 +65,7 @@ pub fn execute_wager(
     };
 
     // Verify that the token is not already wagered or is not matchmaking
-    let token_status = query_token_status(deps.as_ref(), token.clone())?.token_status;
+    let token_status = query_token_status(deps.as_ref(), token)?.token_status;
     if token_status != TokenStatus::None {
         return Err(ContractError::AlreadyWagered {});
     };
@@ -108,26 +103,23 @@ pub fn execute_wager(
             },
         ) = matchmaking_item?;
 
-        let (_, token_id) = matchmaking_key;
-
-        let against_token: Token = (collection, token_id);
+        let against_token: Token = matchmaking_key;
         let expires_at = env.block.time.plus_seconds(expiry);
 
         let wager = Wager {
-            id: (token.clone(), against_token.clone()),
+            id: (token, against_token),
             currencies: (currency, match_currency),
             expires_at,
             amount,
         };
 
-        wagers().save(deps.storage, (token.clone(), against_token), &wager)?;
+        wagers().save(deps.storage, (token, against_token), &wager)?;
 
         MATCHMAKING.remove(deps.storage, matchmaking_key);
 
         Ok(Response::new()
             .add_attribute("action", "wager")
-            .add_attribute("collection", token.0)
-            .add_attribute("token_id", token.1.to_string())
+            .add_attribute("token_id", token.to_string())
             .add_attribute("expires_at", expires_at.to_string()))
     } else {
         let expires_at = env.block.time.plus_seconds(config.matchmaking_expiry);
@@ -139,12 +131,11 @@ pub fn execute_wager(
             amount,
         };
 
-        MATCHMAKING.save(deps.storage, token.clone(), &matchmaking_item)?;
+        MATCHMAKING.save(deps.storage, token, &matchmaking_item)?;
 
         Ok(Response::new()
             .add_attribute("action", "matchmake")
-            .add_attribute("collection", token.0)
-            .add_attribute("token_id", token.1.to_string())
+            .add_attribute("token_id", token.to_string())
             .add_attribute("expires_at", expires_at.to_string()))
     }
 }
@@ -154,33 +145,28 @@ pub fn execute_cancel(
     info: MessageInfo,
     token: Token,
 ) -> Result<Response, ContractError> {
-    let (collection, token_id) = token.clone();
+    let token_id = token;
 
-    // Verify that the token's collection address is the same as the contract address in config
     let config = CONFIG.load(deps.storage)?;
-    if collection != config.collection_address {
-        return Err(ContractError::Unauthorized {});
-    }
 
     // Verify that the sender is the owner of the token
-    let token_owner = Cw721Contract(collection)
+    let token_owner = Cw721Contract(config.collection_address)
         .owner_of(&deps.querier, token_id.to_string(), true)?
         .owner;
     if info.sender != token_owner {
         return Err(ContractError::Unauthorized {});
     };
 
-    let token_status = query_token_status(deps.as_ref(), token.clone())?.token_status;
+    let token_status = query_token_status(deps.as_ref(), token)?.token_status;
 
     match token_status {
         TokenStatus::Matchmaking(status) => {
-            MATCHMAKING.remove(deps.storage, token.clone());
+            MATCHMAKING.remove(deps.storage, token);
             let msg = send_tokens(info.sender, coin(status.amount.u128(), NATIVE_DENOM))?;
             Ok(Response::new()
                 .add_submessage(msg)
                 .add_attribute("action", "cancel")
-                .add_attribute("collection", token.0)
-                .add_attribute("token_id", token.1.to_string()))
+                .add_attribute("token_id", token.to_string()))
         }
         _ => Err(ContractError::NotMatchmaking {}),
     }
@@ -194,22 +180,20 @@ pub fn execute_set_winner(
     prev_prices: (Decimal, Decimal),
     current_prices: (Decimal, Decimal),
 ) -> Result<Response, ContractError> {
-    // Verify that all token data conforms to the contract's config
     let config = CONFIG.load(deps.storage)?;
-    if wager_key.0 .0 != config.collection_address || wager_key.1 .0 != config.collection_address {
-        return Err(ContractError::Unauthorized {});
-    }
+
     // Get the wager info
     let wager = wagers()
-        .load(deps.storage, wager_key.clone())
-        .or_else(|_| wagers().load(deps.storage, (wager_key.clone().1, wager_key.clone().0)))?;
+        .load(deps.storage, wager_key)
+        .or_else(|_| wagers().load(deps.storage, (wager_key.1, wager_key.0)))?;
+
     // Verify that the wager has expired
     if env.block.time < wager.expires_at {
         return Err(ContractError::WagerActive {});
     }
 
     // Remove the wager
-    wagers().remove(deps.storage, wager_key.clone())?;
+    wagers().remove(deps.storage, wager_key)?;
 
     // Determine the winner of the wager
     let token_1_change = Decimal::from_ratio(current_prices.0.atomics(), prev_prices.0.atomics());
@@ -228,16 +212,16 @@ pub fn execute_set_winner(
         let msgs = vec![
             send_tokens(
                 deps.api.addr_validate(
-                    &Cw721Contract(wager.id.0 .0)
-                        .owner_of(&deps.querier, wager.id.0 .1.to_string(), true)?
+                    &Cw721Contract(config.collection_address.clone())
+                        .owner_of(&deps.querier, wager.id.0.to_string(), true)?
                         .owner,
                 )?,
                 coin(wager.amount.u128(), NATIVE_DENOM),
             )?,
             send_tokens(
                 deps.api.addr_validate(
-                    &Cw721Contract(wager.id.1 .0)
-                        .owner_of(&deps.querier, wager.id.1 .1.to_string(), true)?
+                    &Cw721Contract(config.collection_address)
+                        .owner_of(&deps.querier, wager.id.1.to_string(), true)?
                         .owner,
                 )?,
                 coin(wager.amount.u128(), NATIVE_DENOM),
@@ -246,8 +230,8 @@ pub fn execute_set_winner(
         return Ok(res.add_submessages(msgs));
     };
 
-    let winner_addr = Cw721Contract(winner.0)
-        .owner_of(&deps.querier, winner.1.to_string(), true)?
+    let winner_addr = Cw721Contract(config.collection_address)
+        .owner_of(&deps.querier, winner.to_string(), true)?
         .owner;
 
     // Pay out the winner

@@ -3,7 +3,7 @@ use cosmwasm_std::{Decimal, Uint128};
 
 use crate::{
     config::ParamInfo,
-    state::{Config, Currency, Token, TokenStatus, WagerExport},
+    state::{Config, Currency, MatchmakingItemExport, Token, TokenStatus, WagerExport},
 };
 
 #[cw_serde]
@@ -51,6 +51,8 @@ pub enum QueryMsg {
     Wagers {},
     #[returns(WagerResponse)]
     Wager { token: Token },
+    #[returns(MatchmakingResponse)]
+    Matchmaking {},
     #[returns(TokenStatusResponse)]
     TokenStatus { token: Token },
     #[returns(ConfigResponse)]
@@ -67,6 +69,11 @@ pub struct WagersResponse {
 #[cw_serde]
 pub struct WagerResponse {
     pub wager: WagerExport,
+}
+
+#[cw_serde]
+pub struct MatchmakingResponse {
+    pub matchmaking: Vec<MatchmakingItemExport>,
 }
 
 #[cw_serde]

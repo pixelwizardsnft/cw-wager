@@ -12,8 +12,8 @@ use crate::config::execute_update_params;
 use crate::error::ContractError;
 use crate::execute::{execute_cancel, execute_set_winner, execute_wager};
 use crate::msg::{
-    ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg, TokenStatusResponse, WagerResponse,
-    WagersResponse,
+    ConfigResponse, ExecuteMsg, InstantiateMsg, MatchmakingResponse, QueryMsg, TokenStatusResponse,
+    WagerResponse, WagersResponse,
 };
 use crate::state::{
     wagers, Config, MatchmakingItem, MatchmakingItemExport, Token, TokenStatus, Wager, WagerExport,
@@ -149,6 +149,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Wagers {} => to_binary(&query_wagers(deps)?),
         QueryMsg::Wager { token } => to_binary(&query_wager(deps, token)?),
+        QueryMsg::Matchmaking {} => to_binary(&query_matchmaking(deps)?),
         QueryMsg::TokenStatus { token } => to_binary(&query_token_status(deps, token)?),
         QueryMsg::Config {} => to_binary(&query_config(deps)?),
     }
@@ -188,6 +189,19 @@ pub fn query_wager(deps: Deps, token: Token) -> StdResult<WagerResponse> {
             kind: "wager".into(),
         }),
     }
+}
+
+pub fn query_matchmaking(deps: Deps) -> StdResult<MatchmakingResponse> {
+    let config = CONFIG.load(deps.storage)?;
+
+    let matchmaking = MATCHMAKING
+        .range(deps.storage, None, None, Order::Ascending)
+        .collect::<StdResult<Vec<_>>>()?
+        .iter()
+        .map(|v| export_matchmaking(v.clone().0, v.clone().1, config.collection_address.clone()))
+        .collect();
+
+    Ok(MatchmakingResponse { matchmaking })
 }
 
 pub fn query_token_status(deps: Deps, token: Token) -> StdResult<TokenStatusResponse> {
@@ -274,6 +288,24 @@ fn export_wager(v: Wager, collection: Addr) -> WagerExport {
                 currency: v.currencies.1,
             },
         ),
+    }
+}
+
+fn export_matchmaking(
+    token_id: u64,
+    v: MatchmakingItem,
+    collection: Addr,
+) -> MatchmakingItemExport {
+    MatchmakingItemExport {
+        token: NFT {
+            collection,
+            token_id,
+        },
+        currency: v.currency,
+        against_currencies: v.against_currencies,
+        expires_at: v.expires_at,
+        expiry: v.expiry,
+        amount: v.amount,
     }
 }
 
